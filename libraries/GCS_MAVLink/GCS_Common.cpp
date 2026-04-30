@@ -21,6 +21,7 @@
 
 #include "GCS.h"
 
+#include "AP_Arming/Weather.h"
 #include <AC_Fence/AC_Fence.h>
 #include <AP_Compass/AP_Compass.h>
 #include <AP_ADSB/AP_ADSB.h>
@@ -4687,6 +4688,22 @@ void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
         break;
     }
 #endif
+
+ case MAVLINK_MSG_ID_WEATHER_DATA:
+{
+    mavlink_weather_data_t packet;
+    mavlink_msg_weather_data_decode(&msg, &packet);
+
+    weather_temperature = packet.temperature;
+    weather_humidity   = packet.humidity;
+    weather_altitude   = packet.altitude;
+    weather_status     = packet.status;
+
+    weather_last_update_ms = AP_HAL::millis();
+
+    gcs().send_text(MAV_SEVERITY_INFO, "Weather Received");
+    break;
+}
 #if AP_GENERATOR_LOWEHEISER_ENABLED
     case MAVLINK_MSG_ID_LOWEHEISER_GOV_EFI:
         // message received from Loweheiser mavlink connection
@@ -7839,3 +7856,26 @@ void GCS_MAVLINK::handle_radio_rc_channels(const mavlink_message_t &msg)
 #endif // AP_RCPROTOCOL_MAVLINK_RADIO_ENABLED
 
 #endif  // HAL_GCS_ENABLED
+
+void GCS_MAVLINK::handle_weather_data(const mavlink_message_t &msg)
+{
+    mavlink_weather_data_t packet;
+    mavlink_msg_weather_data_decode(&msg, &packet);
+
+    // 🔷 Store weather data globally
+    weather_temperature = packet.temperature;
+    weather_humidity = packet.humidity;
+    weather_altitude = packet.altitude;
+    weather_status = packet.status;
+
+    // 🔷 Timestamp (IMPORTANT)
+    weather_last_update_ms = AP_HAL::millis();
+
+    // 🔷 Debug message
+    gcs().send_text(MAV_SEVERITY_INFO,
+        "Weather: T=%.1f H=%.1f Alt=%.1f S=%d",
+        weather_temperature,
+        weather_humidity,
+        weather_altitude,
+        weather_status);
+}
