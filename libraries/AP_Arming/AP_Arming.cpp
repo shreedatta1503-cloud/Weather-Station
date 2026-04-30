@@ -72,6 +72,13 @@
 
 #include <AP_Logger/AP_Logger.h>
 
+// WEATHER SYSTEM GLOBAL DATA
+float weather_temperature = 0.0f;
+float weather_humidity = 0.0f;
+float weather_altitude = 0.0f;
+uint8_t weather_status = 0;
+uint32_t weather_last_update_ms = 0;
+
 #define AP_ARMING_COMPASS_MAGFIELD_EXPECTED 530
 #define AP_ARMING_COMPASS_MAGFIELD_MIN  185     // 0.35 * 530 milligauss
 #define AP_ARMING_COMPASS_MAGFIELD_MAX  875     // 1.65 * 530 milligauss
@@ -1674,6 +1681,26 @@ bool AP_Arming::estop_checks(bool display_failure)
 
 bool AP_Arming::pre_arm_checks(bool report)
 {
+    // 🔷 WEATHER SAFETY SYSTEM
+
+// 1. No data received
+if (weather_last_update_ms == 0) {
+    check_failed(report, "No weather data");
+    return false;
+}
+
+// 2. Timeout (no update for 5 sec)
+if ((AP_HAL::millis() - weather_last_update_ms) > 5000) {
+    check_failed(report, "Weather timeout");
+    return false;
+}
+
+// 3. Dangerous weather condition
+if (weather_status == 2) {   // 2 = BAD / DANGER
+    check_failed(report, "Bad weather");
+    return false;
+    }
+
 #if !APM_BUILD_COPTER_OR_HELI
     if (armed || arming_required() == Required::NO) {
         // if we are already armed or don't need any arming checks
