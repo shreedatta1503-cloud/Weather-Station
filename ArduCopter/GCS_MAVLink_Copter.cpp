@@ -4,6 +4,12 @@
 #include <AP_RPM/AP_RPM_config.h>
 #include <AP_EFI/AP_EFI_config.h>
 
+// External weather data
+float external_temp = 0;
+float external_hum = 0;
+uint32_t last_update_ms = 0;
+bool weather_data_valid = false;
+
 MAV_TYPE GCS_Copter::frame_type() const
 {
     /*
@@ -1200,6 +1206,45 @@ void GCS_MAVLINK_Copter::handle_message(const mavlink_message_t &msg)
         copter.g2.toy_mode.handle_message(msg);
         break;
 #endif
+case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
+    {
+        mavlink_named_value_float_t packet;
+        mavlink_msg_named_value_float_decode(&msg, &packet);
+
+        if (strncmp(packet.name, "TEMP", 4) == 0) {
+            external_temp = packet.value;
+            last_update_ms = AP_HAL::millis();
+            weather_data_valid = true;
+        }
+
+        if (strncmp(packet.name, "HUM", 3) == 0) {
+            external_hum = packet.value;
+            last_update_ms = AP_HAL::millis();
+            weather_data_valid = true;
+        }
+
+        // ✅ Sanity check BEFORE break
+        if (external_temp < -40 || external_temp > 100) {
+            weather_data_valid = false;
+        }
+
+        if (external_hum < 0 || external_hum > 100) {
+            weather_data_valid = false;
+        }
+
+        break;
+    }
+
+    case MAVLINK_MSG_ID_WEATHER_DATA_CUSTOM:
+    {
+        gcs().send_text(MAV_SEVERITY_INFO, "Weather msg received");
+        break;
+    }
+
+    default:
+        GCS_MAVLINK::handle_message(msg);
+        break;
+    }
     default:
         GCS_MAVLINK::handle_message(msg);
         break;
