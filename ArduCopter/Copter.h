@@ -929,6 +929,7 @@ private:
     uint8_t get_mode() const override { return (uint8_t)flightmode->mode_number(); }
     bool current_mode_requires_mission() const override;
     void update_flight_mode();
+    void weather_failsafe_check();
     void notify_flight_mode();
 
     // Check if this mode can be entered from the GCS
