@@ -532,6 +532,7 @@ protected:
     AP_Int16        streamRates[NUM_STREAMS];
 
     void handle_heartbeat(const mavlink_message_t &msg);
+    void handle_weather_data(const mavlink_message_t &msg);
 
     virtual bool persist_streamrates() const { return false; }
     void handle_request_data_stream(const mavlink_message_t &msg);
