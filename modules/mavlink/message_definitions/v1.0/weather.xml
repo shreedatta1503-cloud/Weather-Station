@@ -1,0 +1,13 @@
+<mavlink>
+    <include>common.xml</include>
+
+    <messages>
+        <message id="418" name="WEATHER_DATA_CUSTOM">
+            <description>Weather data</description>
+            <field type="float" name="temperature"/>
+            <field type="float" name="humidity"/>
+            <field type="float" name="altitude"/>
+            <field type="uint8_t" name="status"/>
+        </message>
+    </messages>
+</mavlink>
