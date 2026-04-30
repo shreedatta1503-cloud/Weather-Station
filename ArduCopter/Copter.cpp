@@ -75,6 +75,7 @@
  */
 
 #include "Copter.h"
+#include <AP_Arming/Weather.h>
 #include <AP_InertialSensor/AP_InertialSensor_rate_config.h>
 
 #define FORCE_VERSION_H_INCLUDE
@@ -140,6 +141,7 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
     FAST_TASK(update_land_and_crash_detectors),
     // surface tracking update
     FAST_TASK(update_rangefinder_terrain_offset),
+    FAST_TASK(weather_failsafe_check),
 #if HAL_MOUNT_ENABLED
     // camera mount's fast update
     FAST_TASK_CLASS(AP_Mount, &copter.camera_mount, update_fast),
@@ -263,6 +265,18 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
     SCHED_TASK(update_dynamic_notch_at_specified_rate_main,                       LOOP_RATE, 200, 215),
 #endif
 };
+
+void Copter::weather_failsafe_check()
+{
+    // WEATHER FAILSAFE (IN-FLIGHT)
+    if (weather_status == 2) {
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Weather Danger → RTL");
+
+        if (flightmode != &mode_rtl) {
+            set_mode(Mode::Number::RTL, ModeReason::FAILSAFE);
+            }
+    }
+}
 
 void Copter::get_scheduler_tasks(const AP_Scheduler::Task *&tasks,
                                  uint8_t &task_count,
