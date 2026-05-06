@@ -5,10 +5,10 @@
 #include <AP_EFI/AP_EFI_config.h>
 
 // External weather data
-float external_temp = 0;
+/*float external_temp = 0;
 float external_hum = 0;
 uint32_t last_update_ms = 0;
-bool weather_data_valid = false;
+bool weather_data_valid = false;*/
 
 MAV_TYPE GCS_Copter::frame_type() const
 {
@@ -1206,7 +1206,7 @@ void GCS_MAVLINK_Copter::handle_message(const mavlink_message_t &msg)
         copter.g2.toy_mode.handle_message(msg);
         break;
 #endif
-case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
+    /*case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
     {
         mavlink_named_value_float_t packet;
         mavlink_msg_named_value_float_decode(&msg, &packet);
@@ -1239,7 +1239,7 @@ case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
     {
         gcs().send_text(MAV_SEVERITY_INFO, "Weather msg received");
         break;
-    }
+    }*/
 
     default:
         GCS_MAVLINK::handle_message(msg);
@@ -1248,8 +1248,16 @@ case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
     default:
         GCS_MAVLINK::handle_message(msg);
         break;
-    }
+    
+       gcs().send_text(
+    MAV_SEVERITY_INFO,
+    "TEMP: %.1fC HUM: %.1f%% ALT: %.1fm",
+    copter.weather_temp,
+    copter.weather_hum,
+    copter.weather_alt
+    );
 }
+
 
 MAV_RESULT GCS_MAVLINK_Copter::handle_flight_termination(const mavlink_command_int_t &packet) {
 #if AP_COPTER_ADVANCED_FAILSAFE_ENABLED

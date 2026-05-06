@@ -21,6 +21,7 @@
 
 #include "GCS.h"
 
+#include "../../ArduCopter/Copter.h"
 #include "AP_Arming/Weather.h"
 #include <AC_Fence/AC_Fence.h>
 #include <AP_Compass/AP_Compass.h>
@@ -4358,6 +4359,37 @@ void GCS_MAVLINK::handle_heartbeat(const mavlink_message_t &msg)
 void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
 {
     switch (msg.msgid) {
+    
+    case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT: {
+
+    mavlink_named_value_float_t packet;
+
+    mavlink_msg_named_value_float_decode(&msg, &packet);
+
+    if (strcmp(packet.name, "TEMP") == 0) {
+    copter.weather_temp = packet.value;
+
+    gcs().send_text(
+        MAV_SEVERITY_INFO,
+        "RX TEMP=%.1f",
+        copter.weather_temp);
+    }
+
+    if (strcmp(packet.name, "HUM") == 0) {
+    copter.weather_hum = packet.value;
+
+    gcs().send_text(
+        MAV_SEVERITY_INFO,
+        "RX HUM=%.1f",
+        copter.weather_hum);
+    }
+
+    if (strcmp(packet.name, "ALT") == 0) {
+        copter.weather_alt = packet.value;
+    }
+
+    break;
+    }
 
     case MAVLINK_MSG_ID_HEARTBEAT: {
         handle_heartbeat(msg);
@@ -7857,7 +7889,7 @@ void GCS_MAVLINK::handle_radio_rc_channels(const mavlink_message_t &msg)
 
 #endif  // HAL_GCS_ENABLED
 
-void GCS_MAVLINK::handle_weather_data(const mavlink_message_t &msg)
+/*void GCS_MAVLINK::handle_weather_data(const mavlink_message_t &msg)
 {
     mavlink_weather_data_t packet;
     mavlink_msg_weather_data_decode(&msg, &packet);
@@ -7878,4 +7910,4 @@ void GCS_MAVLINK::handle_weather_data(const mavlink_message_t &msg)
         weather_humidity,
         weather_altitude,
         weather_status);
-}
+}*/

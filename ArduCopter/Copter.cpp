@@ -75,7 +75,7 @@
  */
 
 #include "Copter.h"
-#include <AP_Arming/Weather.h>
+//#include <AP_Arming/Weather.h>
 #include <AP_InertialSensor/AP_InertialSensor_rate_config.h>
 
 #define FORCE_VERSION_H_INCLUDE
@@ -266,7 +266,7 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
 #endif
 };
 
-void Copter::weather_failsafe_check()
+/*void Copter::weather_failsafe_check()
 {
     // WEATHER FAILSAFE (IN-FLIGHT)
     if (weather_status == 2) {
@@ -275,6 +275,55 @@ void Copter::weather_failsafe_check()
         if (flightmode != &mode_rtl) {
             set_mode(Mode::Number::RTL, ModeReason::FAILSAFE);
             }
+    }
+}*/
+
+void Copter::weather_failsafe_check()
+{
+    static uint32_t last_warn_ms = 0;
+
+    // EXTREME TEMPERATURE
+    if (weather_temp < -20 || weather_temp > 60) {
+
+        gcs().send_text(
+            MAV_SEVERITY_CRITICAL,
+            "EXTREME TEMPERATURE");
+
+        arming.disarm(AP_Arming::Method::MAVLINK);
+
+        return;
+    }
+
+    // INVALID HUMIDITY
+    if (weather_hum < 0 || weather_hum > 100) {
+
+        gcs().send_text(
+            MAV_SEVERITY_CRITICAL,
+            "EXTREME HUMIDITY");
+
+        arming.disarm(AP_Arming::Method::MAVLINK);
+
+        return;
+    }
+
+    // WARNING MESSAGES EVERY 5 SECONDS
+    if (AP_HAL::millis() - last_warn_ms > 5000) {
+
+        if (weather_temp < 0 || weather_temp > 40) {
+
+            gcs().send_text(
+                MAV_SEVERITY_WARNING,
+                "TEMP WARNING");
+        }
+
+        if (weather_hum < 20 || weather_hum > 80) {
+
+            gcs().send_text(
+                MAV_SEVERITY_WARNING,
+                "HUM WARNING");
+        }
+
+        last_warn_ms = AP_HAL::millis();
     }
 }
 
@@ -793,6 +842,7 @@ uint32_t Copter::ap_value() const
 // one_hz_loop - runs at 1Hz
 void Copter::one_hz_loop()
 {
+    weather_failsafe_check();
 #if HAL_LOGGING_ENABLED
     if (should_log(MASK_LOG_ANY)) {
         Log_Write_Data(LogDataID::AP_STATE, ap_value());
@@ -995,6 +1045,9 @@ bool Copter::get_rate_ef_targets(Vector3f& rate_ef_targets_rads) const
  */
 Copter::Copter(void)
     :
+    weather_temp(0.0f),
+    weather_hum(0.0f),
+    weather_alt(0.0f),
     pos_variance_filt(FS_EKF_FILT_DEFAULT),
     vel_variance_filt(FS_EKF_FILT_DEFAULT),
     flightmode(&mode_stabilize),
